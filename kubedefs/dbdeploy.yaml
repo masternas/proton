@@ -1,21 +1,47 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-deployment
+  name: vprodb
   labels:
-    app: nginx
+    app: vprodb
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: nginx
+      app: vprodb
   template:
     metadata:
       labels:
-        app: nginx
+        app: vprodb
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.14.2
+      - name: vprodb
+        image: masternas/vprofiledb
+        volumeMounts:
+        - name: db-pv-storage
+          mountPath: /var/lib/mysql 
         ports:
-        - containerPort: 80
+        - name: vprodb-port
+          containerPort: 3306
+
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: db-pass
+
+      volumes:
+      - name: db-pv-storage
+        persistentVolumeClaim:
+          claimName: db-pv-claim          
+
+      initContainers:
+      - name: init-mysql  
+        image: busybox
+        command: ['sh', '-c', 'rm -rf /var/lib/mysql/lost+found']
+        
+   
+        volumeMounts:
+        - name: db-pv-storage
+          mountPath: /var/lib/mysql     
